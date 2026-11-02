@@ -21,12 +21,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android Build Tools and NDK
-        run: |
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973"
+      - name: Set up Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27c
 
       - name: Make build script executable
         run: chmod +x build.sh
