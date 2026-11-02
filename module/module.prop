@@ -1,0 +1,6 @@
+id=googleplaystorecrashfix
+name=Google Play Store Crash Fix
+version=1.0.0
+versionCode=100
+author=Ghostbabylittle
+description=Fixes Google Play Store crashes, stalled downloads, and random instability on Android 15 (Xiaomi HyperOS 2 / MIUI). Zygisk module for KernelSU, APatch, and Magisk.

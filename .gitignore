@@ -1,0 +1,9 @@
+build/
+out/
+*.zip
+*.dex
+*.class
+.idea/
+.vscode/
+*.swp
+*~
