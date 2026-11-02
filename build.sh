@@ -37,21 +37,25 @@ if [ -z "$ANDROID_JAR" ]; then
     exit 1
 fi
 
-# Locate compiler
-if [ -f "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android31-clang++" ]; then
-    CXX="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android31-clang++"
-else
-    CXX="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++ --target=aarch64-linux-android31"
-fi
+# Locate compilers
+NDK_BIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+CC="$NDK_BIN/clang --target=aarch64-linux-android31"
+CXX="$NDK_BIN/clang++ --target=aarch64-linux-android31"
 
 OUT=build
-rm -rf "$OUT" && mkdir -p "$OUT/classes" "$OUT/dex" "$OUT/zip/zygisk"
+rm -rf "$OUT" && mkdir -p "$OUT/classes" "$OUT/dex" "$OUT/zip/zygisk" "$OUT/obj"
 
 echo "Compiling Java hooks..."
 "$JAVA_HOME/bin/javac" --release 11 -cp "$ANDROID_JAR" -d "$OUT/classes" java/xiaomiplaystorefix/*.java
 "$BT/d8" --release --min-api 31 --lib "$ANDROID_JAR" --output "$OUT/dex" $(find "$OUT/classes" -name '*.class')
 
-echo "Compiling native Zygisk library..."
+echo "Compiling xz-embedded C objects..."
+$CC -c -O2 -fPIC -DXZ_USE_CRC32 -I native/third_party/xz native/third_party/xz/xz_crc32.c -o "$OUT/obj/xz_crc32.o"
+$CC -c -O2 -fPIC -DXZ_USE_CRC32 -I native/third_party/xz native/third_party/xz/xz_dec_stream.c -o "$OUT/obj/xz_dec_stream.o"
+$CC -c -O2 -fPIC -DXZ_USE_CRC32 -I native/third_party/xz native/third_party/xz/xz_dec_lzma2.c -o "$OUT/obj/xz_dec_lzma2.o"
+$CC -c -O2 -fPIC -DXZ_USE_CRC32 -I native/third_party/xz native/third_party/xz/xz_dec_bcj.c -o "$OUT/obj/xz_dec_bcj.o"
+
+echo "Compiling native Zygisk library (C++)..."
 $CXX -std=c++20 -O2 -fPIC -shared -fvisibility=hidden -fno-exceptions \
     -static-libstdc++ -Wl,--gc-sections -Wl,-z,max-page-size=16384 -s \
     -DXZ_USE_CRC32 \
@@ -60,10 +64,10 @@ $CXX -std=c++20 -O2 -fPIC -shared -fvisibility=hidden -fno-exceptions \
     -DCLASSES_DEX_PATH="\"$PWD/$OUT/dex/classes.dex\"" \
     native/main.cpp \
     native/third_party/And64InlineHook.cpp \
-    native/third_party/xz/xz_crc32.c \
-    native/third_party/xz/xz_dec_stream.c \
-    native/third_party/xz/xz_dec_lzma2.c \
-    native/third_party/xz/xz_dec_bcj.c \
+    "$OUT/obj/xz_crc32.o" \
+    "$OUT/obj/xz_dec_stream.o" \
+    "$OUT/obj/xz_dec_lzma2.o" \
+    "$OUT/obj/xz_dec_bcj.o" \
     -llog -o "$OUT/zip/zygisk/arm64-v8a.so"
 
 echo "Packaging module zip..."
