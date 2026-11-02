@@ -26,10 +26,6 @@ jobs:
         with:
           ndk-version: r27c
 
-      - name: Install Android Platform 35
-        run: |
-          yes | sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
-
       - name: Make build script executable
         run: chmod +x build.sh
 
